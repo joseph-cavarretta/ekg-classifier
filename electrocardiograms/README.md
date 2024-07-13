@@ -14,6 +14,10 @@ The weakest classification performance is in predicting premature ventricular co
 These types of arrythmias present a unique challenge in which the signal may look very normal,  
 but is slightly compressed as the beat occurs prematurely.  
 
+<p align="left">
+<img width='800' src='https://github.com/joseph-cavarretta/photos/blob/main/ekg.png'>
+</p>
+
 ## Implementations
 **Local:**  
 • EKG_nn.ipynb - implements the model as a multi-layer perceptron using Sci-kit Learn  
