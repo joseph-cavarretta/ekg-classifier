@@ -1,0 +1,2 @@
+gcloud info;
+gcloud init;
