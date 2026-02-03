@@ -15,7 +15,7 @@ These types of arrythmias present a unique challenge in which the signal may loo
 but is slightly compressed as the beat occurs prematurely.  
 
 <p align="left">
-<img width='800' src='https://github.com/joseph-cavarretta/photos/blob/main/ekg.png'>
+<img width='800' src='assets/ekg.png'>
 </p>
 
 ## Implementations
