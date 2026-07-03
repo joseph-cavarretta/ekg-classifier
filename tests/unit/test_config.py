@@ -39,9 +39,7 @@ class TestModelConfig:
 
 class TestSettings:
     def test_default_paths(self):
-        settings = Settings(
-            gcp=GCPConfig(project_id="test", bucket_name="bucket")
-        )
+        settings = Settings(gcp=GCPConfig(project_id="test", bucket_name="bucket"))
         assert settings.data_dir == Path("data")
         assert settings.train_file == "mitbih_train.csv.gz"
         assert settings.test_file == "mitbih_test.csv.gz"

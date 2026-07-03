@@ -81,8 +81,12 @@ class GCPService:
         dataset = self.settings.gcp.dataset_id
         project = self.settings.gcp.project_id
 
-        train_gcs_uri = f"gs://{bucket}/electrocardiograms/data/{self.settings.train_file}"
-        test_gcs_uri = f"gs://{bucket}/electrocardiograms/data/{self.settings.test_file}"
+        train_gcs_uri = (
+            f"gs://{bucket}/electrocardiograms/data/{self.settings.train_file}"
+        )
+        test_gcs_uri = (
+            f"gs://{bucket}/electrocardiograms/data/{self.settings.test_file}"
+        )
 
         train_table = f"{project}.{dataset}.processed_train_data"
         test_table = f"{project}.{dataset}.processed_test_data"

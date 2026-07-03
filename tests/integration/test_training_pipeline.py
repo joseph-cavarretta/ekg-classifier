@@ -51,7 +51,8 @@ def integration_data(tmp_path: Path) -> tuple[Path, Path]:
 
 @pytest.fixture
 def integration_settings(
-    tmp_path: Path, integration_data: tuple[Path, Path]  # noqa: ARG001
+    tmp_path: Path,
+    integration_data: tuple[Path, Path],  # noqa: ARG001
 ) -> Settings:
     """Create settings for integration tests."""
     return Settings(
@@ -102,9 +103,7 @@ class TestTrainingPipeline:
         assert result.f1_score > 0
         assert result.model_path.exists()
 
-    def test_classification_report_format(
-        self, integration_settings: Settings
-    ):
+    def test_classification_report_format(self, integration_settings: Settings):
         """Test that classification report is properly formatted."""
         integration_settings.model.balance_classes = False
 

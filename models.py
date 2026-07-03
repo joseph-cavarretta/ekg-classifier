@@ -44,9 +44,7 @@ class DatasetStats(BaseModel):
 
     num_samples: int = Field(ge=0, description="Total number of samples")
     num_features: int = Field(ge=0, description="Number of features per sample")
-    class_distribution: dict[int, int] = Field(
-        description="Count of samples per class"
-    )
+    class_distribution: dict[int, int] = Field(description="Count of samples per class")
 
     @property
     def total_classes(self) -> int:

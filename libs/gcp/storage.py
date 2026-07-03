@@ -8,7 +8,7 @@ from google.cloud import storage  # type: ignore[attr-defined]
 from config import GCPConfig
 
 if TYPE_CHECKING:
-    from google.cloud.storage import Bucket, Client
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,9 @@ class GCSClient:
         local_path.parent.mkdir(parents=True, exist_ok=True)
         blob.download_to_filename(str(local_path))
 
-        logger.info(f"Downloaded gs://{self.config.bucket_name}/{remote_path} to {local_path}")
+        logger.info(
+            f"Downloaded gs://{self.config.bucket_name}/{remote_path} to {local_path}"
+        )
         return local_path
 
     def exists(self, remote_path: str) -> bool:
