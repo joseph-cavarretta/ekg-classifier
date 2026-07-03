@@ -16,7 +16,9 @@ class BigQueryClient:
         self.config = config
         self._client = bigquery.Client(project=config.project_id)
 
-    def create_dataset(self, dataset_id: str | None = None, location: str = "US") -> None:
+    def create_dataset(
+        self, dataset_id: str | None = None, location: str = "US"
+    ) -> None:
         """Create a dataset if it doesn't exist.
 
         Args:

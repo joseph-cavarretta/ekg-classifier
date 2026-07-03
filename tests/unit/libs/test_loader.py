@@ -92,10 +92,12 @@ class TestLocalDataLoader:
 
     def test_null_values_rejected(self, tmp_path: Path):
         # create data with null values
-        data = pd.DataFrame({
-            0: [1.0, 2.0, None],
-            1: [1.0, 2.0, 3.0],
-        })
+        data = pd.DataFrame(
+            {
+                0: [1.0, 2.0, None],
+                1: [1.0, 2.0, 3.0],
+            }
+        )
         data_path = tmp_path / "null_data.csv"
         data.to_csv(data_path, index=False, header=False)
 

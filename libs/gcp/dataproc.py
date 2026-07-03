@@ -1,6 +1,5 @@
 import logging
 import time
-from typing import Any
 
 from google.cloud import dataproc_v1
 
@@ -8,7 +7,9 @@ from config import DataprocConfig, GCPConfig
 
 logger = logging.getLogger(__name__)
 
-SPARK_BIGQUERY_JAR = "gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.35.0.jar"
+SPARK_BIGQUERY_JAR = (
+    "gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.35.0.jar"
+)
 
 
 class DataprocClient:
@@ -18,10 +19,14 @@ class DataprocClient:
         self.gcp_config = gcp_config
         self.dataproc_config = dataproc_config
         self._cluster_client = dataproc_v1.ClusterControllerClient(
-            client_options={"api_endpoint": f"{gcp_config.region}-dataproc.googleapis.com:443"}
+            client_options={
+                "api_endpoint": f"{gcp_config.region}-dataproc.googleapis.com:443"
+            }
         )
         self._job_client = dataproc_v1.JobControllerClient(
-            client_options={"api_endpoint": f"{gcp_config.region}-dataproc.googleapis.com:443"}
+            client_options={
+                "api_endpoint": f"{gcp_config.region}-dataproc.googleapis.com:443"
+            }
         )
 
     def create_cluster(self) -> None:

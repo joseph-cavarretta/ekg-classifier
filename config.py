@@ -75,19 +75,25 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    data_dir: Path = Field(default=Path("data"), description="Directory containing data files")
+    data_dir: Path = Field(
+        default=Path("data"), description="Directory containing data files"
+    )
     train_file: str = Field(
         default="mitbih_train.csv.gz", description="Training data filename"
     )
-    test_file: str = Field(default="mitbih_test.csv.gz", description="Test data filename")
+    test_file: str = Field(
+        default="mitbih_test.csv.gz", description="Test data filename"
+    )
     output_dir: Path = Field(
         default=Path("output"), description="Directory for model outputs"
     )
 
-    gcp: GCPConfig = Field(default_factory=lambda: GCPConfig(
-        project_id="",
-        bucket_name="",
-    ))
+    gcp: GCPConfig = Field(
+        default_factory=lambda: GCPConfig(
+            project_id="",
+            bucket_name="",
+        )
+    )
     dataproc: DataprocConfig = Field(default_factory=DataprocConfig)
     model: ModelConfig = Field(default_factory=ModelConfig)
 

@@ -66,7 +66,9 @@ def gcp_config() -> GCPConfig:
 
 
 @pytest.fixture
-def settings(tmp_path: Path, model_config: ModelConfig, gcp_config: GCPConfig) -> Settings:
+def settings(
+    tmp_path: Path, model_config: ModelConfig, gcp_config: GCPConfig
+) -> Settings:
     """Create test settings with temp directory."""
     data_dir = tmp_path / "data"
     data_dir.mkdir()

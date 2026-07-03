@@ -1,5 +1,7 @@
 # Cardiac Arrhythmia Classification
 
+[![CI](https://github.com/joseph-cavarretta/ekg-classifier/actions/workflows/ci.yml/badge.svg)](https://github.com/joseph-cavarretta/ekg-classifier/actions/workflows/ci.yml)
+
 A deep neural network classification model to classify electrocardiogram (EKG) signals
 into one of 5 categories:
 
