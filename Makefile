@@ -1,10 +1,10 @@
 .PHONY: install dev-install test lint format type-check docker-up docker-down clean train-local train-spark tf-init tf-validate tf-fmt tf-lint
 
 install:
-	uv sync
+	uv sync --no-dev
 
 dev-install:
-	uv sync --all-extras
+	uv sync
 
 test:
 	uv run pytest

@@ -160,7 +160,6 @@ cython_debug/
 #.idea/
 
 # UV
-uv.lock
 
 # Ruff
 .ruff_cache/
