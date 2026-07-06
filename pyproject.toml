@@ -64,6 +64,15 @@ module = [
 ]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# google-cloud-dataproc ships typed protos that only accept Cluster/Job messages,
+# but the client equally accepts the dict specs used here. Treat it as a boundary.
+module = [
+    "google.cloud.dataproc_v1",
+    "google.cloud.dataproc_v1.*",
+]
+follow_imports = "skip"
+
 [tool.ruff]
 line-length = 88
 target-version = "py312"

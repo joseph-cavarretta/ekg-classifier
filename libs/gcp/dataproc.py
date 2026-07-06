@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Any
 
 from google.cloud import dataproc_v1
 
@@ -120,7 +121,7 @@ class DataprocClient:
         if jar_file_uris:
             jars.extend(jar_file_uris)
 
-        job = {
+        job: dict[str, Any] = {
             "placement": {"cluster_name": self.dataproc_config.cluster_name},
             "pyspark_job": {
                 "main_python_file_uri": main_python_file_uri,
