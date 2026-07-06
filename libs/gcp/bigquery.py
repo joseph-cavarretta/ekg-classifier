@@ -1,7 +1,7 @@
 import logging
 
 import pandas as pd
-from google.api_core.exceptions import Conflict
+from google.api_core.exceptions import Conflict, NotFound
 from google.cloud import bigquery
 
 from config import GCPConfig
@@ -99,7 +99,7 @@ class BigQueryClient:
         try:
             self._client.get_table(table_id)
             return True
-        except Exception:
+        except NotFound:
             return False
 
     def get_table_row_count(self, table_id: str) -> int:
