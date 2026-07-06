@@ -2,6 +2,7 @@ import logging
 import time
 from typing import Any
 
+from google.api_core.exceptions import NotFound
 from google.cloud import dataproc_v1
 
 from config import DataprocConfig, GCPConfig
@@ -93,7 +94,7 @@ class DataprocClient:
                 cluster_name=self.dataproc_config.cluster_name,
             )
             return True
-        except Exception:
+        except NotFound:
             return False
 
     def submit_pyspark_job(
