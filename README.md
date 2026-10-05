@@ -163,8 +163,8 @@ ekg-classifier/
 ├── local/                 # Jupyter notebooks for exploration
 ├── data/                  # Training and test data
 ├── config.py              # Pydantic settings
-├── models.py              # Pydantic models
-└── protocols.py           # Protocol definitions
+├── errors.py              # Exception hierarchy
+└── models.py              # Pydantic models
 ```
 
 ## Implementations

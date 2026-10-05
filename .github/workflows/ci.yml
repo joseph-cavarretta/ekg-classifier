@@ -44,7 +44,5 @@ jobs:
       - name: Mypy
         run: uv run --no-sync mypy .
 
-      # --no-cov: pyproject's 80% coverage gate is not met yet (27% today), and CI
-      # should report test results rather than fail on that gate.
       - name: Pytest
-        run: uv run --no-sync pytest --no-cov
+        run: uv run --no-sync pytest
