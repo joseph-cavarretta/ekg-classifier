@@ -1,13 +1,15 @@
-"""GCP operations orchestration service."""
-
 import logging
 from pathlib import Path
 
 from config import Settings
+from errors import MissingFileError
 from libs.gcp.bigquery import BigQueryClient
 from libs.gcp.storage import GCSClient
 
 logger = logging.getLogger(__name__)
+
+# GCS rejects bucket names shorter than this.
+MIN_BUCKET_NAME_LENGTH = 3
 
 
 class GCPService:
@@ -20,21 +22,20 @@ class GCPService:
 
     @property
     def storage(self) -> GCSClient:
+        """The GCS client, created on first use."""
         if self._storage is None:
             self._storage = GCSClient(self.settings.gcp)
         return self._storage
 
     @property
     def bigquery(self) -> BigQueryClient:
+        """The BigQuery client, created on first use."""
         if self._bigquery is None:
             self._bigquery = BigQueryClient(self.settings.gcp)
         return self._bigquery
 
     def setup(self, skip_upload: bool = False) -> None:
-        """Set up GCP infrastructure.
-
-        Creates bucket and dataset, optionally uploads data.
-        """
+        """Create the bucket and dataset, then upload the data unless skip_upload."""
         logger.info("Setting up GCP infrastructure")
 
         self.storage.create_bucket_if_not_exists()
@@ -44,21 +45,14 @@ class GCPService:
             self.upload_data(self.settings.data_dir)
 
     def upload_data(self, data_dir: Path) -> tuple[str, str]:
-        """Upload training and test data to GCS.
-
-        Args:
-            data_dir: Directory containing data files
-
-        Returns:
-            Tuple of (train_uri, test_uri)
-        """
+        """Upload the train and test files in data_dir; return (train_uri, test_uri)."""
         train_path = data_dir / self.settings.train_file
         test_path = data_dir / self.settings.test_file
 
         if not train_path.exists():
-            raise FileNotFoundError(f"Training file not found: {train_path}")
+            raise MissingFileError(f"Training file not found: {train_path}")
         if not test_path.exists():
-            raise FileNotFoundError(f"Test file not found: {test_path}")
+            raise MissingFileError(f"Test file not found: {test_path}")
 
         train_remote = f"electrocardiograms/data/{self.settings.train_file}"
         test_remote = f"electrocardiograms/data/{self.settings.test_file}"
@@ -66,17 +60,13 @@ class GCPService:
         train_uri = self.storage.upload(train_path, train_remote)
         test_uri = self.storage.upload(test_path, test_remote)
 
-        logger.info(f"Uploaded training data: {train_uri}")
-        logger.info(f"Uploaded test data: {test_uri}")
+        logger.info("Uploaded training data: %s", train_uri)
+        logger.info("Uploaded test data: %s", test_uri)
 
         return train_uri, test_uri
 
     def load_to_bigquery(self) -> tuple[int, int]:
-        """Load data from GCS to BigQuery.
-
-        Returns:
-            Tuple of (train_row_count, test_row_count)
-        """
+        """Load the uploaded files into BigQuery; return (train_rows, test_rows)."""
         bucket = self.settings.gcp.bucket_name
         dataset = self.settings.gcp.dataset_id
         project = self.settings.gcp.project_id
@@ -106,11 +96,7 @@ class GCPService:
         return train_rows, test_rows
 
     def validate_config(self) -> bool:
-        """Validate GCP configuration.
-
-        Returns:
-            True if configuration is valid
-        """
+        """Log every GCP configuration problem; return True when there are none."""
         errors = []
 
         if not self.settings.gcp.project_id:
@@ -119,7 +105,7 @@ class GCPService:
         if not self.settings.gcp.bucket_name:
             errors.append("GCP_BUCKET_NAME is not set")
 
-        if len(self.settings.gcp.bucket_name) < 3:
+        if len(self.settings.gcp.bucket_name) < MIN_BUCKET_NAME_LENGTH:
             errors.append("Bucket name must be at least 3 characters")
 
         if errors:
@@ -128,9 +114,9 @@ class GCPService:
             return False
 
         logger.info("Configuration validated successfully")
-        logger.info(f"  Project: {self.settings.gcp.project_id}")
-        logger.info(f"  Region: {self.settings.gcp.region}")
-        logger.info(f"  Bucket: {self.settings.gcp.bucket_name}")
-        logger.info(f"  Dataset: {self.settings.gcp.dataset_id}")
+        logger.info("  Project: %s", self.settings.gcp.project_id)
+        logger.info("  Region: %s", self.settings.gcp.region)
+        logger.info("  Bucket: %s", self.settings.gcp.bucket_name)
+        logger.info("  Dataset: %s", self.settings.gcp.dataset_id)
 
         return True

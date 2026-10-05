@@ -1,5 +1,3 @@
-"""Tests for Pydantic models."""
-
 from pathlib import Path
 
 import pytest
@@ -15,27 +13,27 @@ from models import (
 
 
 class TestHeartbeatClass:
-    def test_enum_values(self):
-        assert HeartbeatClass.NORMAL == 0
-        assert HeartbeatClass.SVEB == 1
-        assert HeartbeatClass.VEB == 2
-        assert HeartbeatClass.FUSION == 3
-        assert HeartbeatClass.UNKNOWN == 4
+    def test_enum_values(self) -> None:
+        assert HeartbeatClass.NORMAL.value == 0
+        assert HeartbeatClass.SVEB.value == 1
+        assert HeartbeatClass.VEB.value == 2
+        assert HeartbeatClass.FUSION.value == 3
+        assert HeartbeatClass.UNKNOWN.value == 4
 
-    def test_short_names(self):
+    def test_short_names(self) -> None:
         assert HeartbeatClass.NORMAL.short_name == "N"
         assert HeartbeatClass.SVEB.short_name == "S"
         assert HeartbeatClass.VEB.short_name == "V"
         assert HeartbeatClass.FUSION.short_name == "F"
         assert HeartbeatClass.UNKNOWN.short_name == "Q"
 
-    def test_descriptions(self):
+    def test_descriptions(self) -> None:
         assert "Normal" in HeartbeatClass.NORMAL.description
         assert "Supraventricular" in HeartbeatClass.SVEB.description
 
 
 class TestDatasetStats:
-    def test_valid_stats(self):
+    def test_valid_stats(self) -> None:
         stats = DatasetStats(
             num_samples=1000,
             num_features=187,
@@ -44,7 +42,7 @@ class TestDatasetStats:
         assert stats.num_samples == 1000
         assert stats.total_classes == 5
 
-    def test_is_balanced_true(self):
+    def test_is_balanced_true(self) -> None:
         stats = DatasetStats(
             num_samples=500,
             num_features=187,
@@ -52,7 +50,7 @@ class TestDatasetStats:
         )
         assert stats.is_balanced is True
 
-    def test_is_balanced_false(self):
+    def test_is_balanced_false(self) -> None:
         stats = DatasetStats(
             num_samples=1000,
             num_features=187,
@@ -60,7 +58,7 @@ class TestDatasetStats:
         )
         assert stats.is_balanced is False
 
-    def test_negative_samples_rejected(self):
+    def test_negative_samples_rejected(self) -> None:
         with pytest.raises(ValidationError):
             DatasetStats(
                 num_samples=-1,
@@ -70,7 +68,7 @@ class TestDatasetStats:
 
 
 class TestTrainingResult:
-    def test_valid_result(self):
+    def test_valid_result(self) -> None:
         result = TrainingResult(
             accuracy=0.95,
             f1_score=0.94,
@@ -81,7 +79,7 @@ class TestTrainingResult:
         )
         assert result.accuracy == 0.95
 
-    def test_summary_property(self):
+    def test_summary_property(self) -> None:
         result = TrainingResult(
             accuracy=0.95,
             f1_score=0.94,
@@ -94,7 +92,7 @@ class TestTrainingResult:
         assert "0.9500" in summary
         assert "0.9400" in summary
 
-    def test_invalid_accuracy_range(self):
+    def test_invalid_accuracy_range(self) -> None:
         with pytest.raises(ValidationError):
             TrainingResult(
                 accuracy=1.5,
@@ -105,7 +103,7 @@ class TestTrainingResult:
                 classification_report="",
             )
 
-    def test_model_path_optional(self):
+    def test_model_path_optional(self) -> None:
         result = TrainingResult(
             accuracy=0.95,
             f1_score=0.94,
@@ -129,31 +127,31 @@ class TestTrainingResult:
 
 
 class TestGCSUri:
-    def test_valid_uri(self):
+    def test_valid_uri(self) -> None:
         uri = GCSUri(bucket="my-bucket", path="data/file.csv")
         assert uri.uri == "gs://my-bucket/data/file.csv"
 
-    def test_uri_without_path(self):
+    def test_uri_without_path(self) -> None:
         uri = GCSUri(bucket="my-bucket")
         assert uri.uri == "gs://my-bucket"
 
-    def test_with_path_method(self):
+    def test_with_path_method(self) -> None:
         uri = GCSUri(bucket="bucket")
         new_uri = uri.with_path("new/path.csv")
         assert new_uri.uri == "gs://bucket/new/path.csv"
         assert uri.path == ""
 
-    def test_invalid_bucket_name_start(self):
+    def test_invalid_bucket_name_start(self) -> None:
         with pytest.raises(ValidationError):
             GCSUri(bucket="-invalid")
 
-    def test_bucket_name_too_short(self):
+    def test_bucket_name_too_short(self) -> None:
         with pytest.raises(ValidationError):
             GCSUri(bucket="ab")
 
 
 class TestBigQueryTable:
-    def test_valid_table(self):
+    def test_valid_table(self) -> None:
         table = BigQueryTable(
             project_id="my-project",
             dataset_id="my_dataset",
@@ -162,7 +160,7 @@ class TestBigQueryTable:
         assert table.full_table_id == "my-project.my_dataset.my_table"
         assert table.dataset_ref == "my-project.my_dataset"
 
-    def test_project_id_too_short(self):
+    def test_project_id_too_short(self) -> None:
         with pytest.raises(ValidationError):
             BigQueryTable(
                 project_id="short",

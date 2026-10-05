@@ -7,10 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 def split_features_labels(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
-    """Split dataset into features (X) and labels (y).
-
-    Assumes the last column contains labels.
-    """
+    """Split into features and labels; the last column holds the labels."""
     x = data.iloc[:, :-1]
     y = data.iloc[:, -1]
     return x, y
@@ -22,18 +19,13 @@ def balance_classes(
     label_col: int = 187,
     random_seed: int = 42,
 ) -> pd.DataFrame:
-    """Balance classes by upsampling minority classes and downsampling majority.
+    """Resample every class to exactly class_size rows.
 
-    Args:
-        data: DataFrame with features and label column
-        class_size: Target number of samples per class
-        label_col: Index of the label column (default 187 for EKG data)
-        random_seed: Base seed for reproducibility
-
-    Returns:
-        Balanced DataFrame with equal samples per class
+    Larger classes are downsampled without replacement and smaller ones upsampled with
+    replacement. Class i (in sorted label order) uses seed random_seed + i, so the
+    result is reproducible. label_col is the label's column index (187 for EKG data).
     """
-    logger.info(f"Balancing classes to {class_size} samples each")
+    logger.info("Balancing classes to %s samples each", class_size)
 
     class_labels = sorted(data[label_col].unique())
     balanced_dfs = []
@@ -61,8 +53,8 @@ def balance_classes(
             )
             balanced_dfs.append(upsampled)
 
-        logger.debug(f"Class {label}: {current_size} -> {class_size}")
+        logger.debug("Class %s: %s -> %s", label, current_size, class_size)
 
-    result = pd.concat(balanced_dfs, ignore_index=True)
-    logger.info(f"Balanced dataset: {len(result)} total samples")
+    result: pd.DataFrame = pd.concat(balanced_dfs, ignore_index=True)
+    logger.info("Balanced dataset: %s total samples", len(result))
     return result

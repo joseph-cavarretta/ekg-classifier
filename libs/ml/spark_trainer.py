@@ -1,22 +1,15 @@
 import logging
 from pathlib import Path
-from typing import Any
 
 from pyspark.ml import Pipeline, PipelineModel
 from pyspark.ml.classification import MultilayerPerceptronClassifier
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.ml.feature import StringIndexer, VectorAssembler
 from pyspark.sql import DataFrame, SparkSession
-from sklearn.metrics import (
-    accuracy_score,
-    classification_report,
-    confusion_matrix,
-    f1_score,
-    precision_score,
-    recall_score,
-)
 
 from config import ModelConfig
+from errors import MissingFileError, ModelNotTrainedError
+from libs.ml.evaluation import compute_metrics
 from models import TrainingResult
 
 logger = logging.getLogger(__name__)
@@ -64,83 +57,58 @@ class SparkMLPTrainer:
 
         return Pipeline(stages=[indexer, assembler, mlp])
 
-    def train(self, x_train: Any, y_train: Any = None) -> None:  # noqa: ARG002
-        """Train the MLP classifier.
-
-        Args:
-            x_train: Spark DataFrame containing features and label column.
-                     y_train is ignored for Spark (label is in the DataFrame).
-        """
-        if not isinstance(x_train, DataFrame):
-            raise TypeError("x_train must be a Spark DataFrame")
-
+    def train(self, x_train: DataFrame) -> None:
+        """Train on a DataFrame holding the feature columns and the label column."""
         feature_cols = [c for c in x_train.columns if c != self.label_col]
         logger.info(
-            f"Training Spark MLP with layers "
-            f"{[NUM_FEATURES, *self.config.hidden_layers, NUM_CLASSES]}"
+            "Training Spark MLP with layers %s",
+            [NUM_FEATURES, *self.config.hidden_layers, NUM_CLASSES],
         )
 
         self._pipeline = self._build_pipeline(feature_cols)
         self.model = self._pipeline.fit(x_train)
 
         row_count = x_train.count()
-        logger.info(f"Model trained on {row_count} samples")
+        logger.info("Model trained on %s samples", row_count)
 
-    def predict(self, x: Any) -> DataFrame:
+    def predict(self, x: DataFrame) -> DataFrame:
         """Generate predictions."""
         if self.model is None:
-            raise RuntimeError("Model not trained. Call train() first.")
+            raise ModelNotTrainedError("Model not trained. Call train() first.")
         return self.model.transform(x)
 
-    def evaluate(self, x_test: Any, y_test: Any = None) -> TrainingResult:  # noqa: ARG002
-        """Evaluate model and return metrics."""
+    def evaluate(self, x_test: DataFrame) -> TrainingResult:
+        """Evaluate on a DataFrame holding features and labels; return the metrics."""
         if self.model is None:
-            raise RuntimeError("Model not trained. Call train() first.")
-
-        if not isinstance(x_test, DataFrame):
-            raise TypeError("x_test must be a Spark DataFrame")
+            raise ModelNotTrainedError("Model not trained. Call train() first.")
 
         predictions = self.predict(x_test)
 
         # spark evaluator for f1
         evaluator = MulticlassClassificationEvaluator(metricName="f1")
         spark_f1 = evaluator.evaluate(predictions.select("prediction", "label"))
-        logger.info(f"Spark F1 score: {spark_f1:.4f}")
+        logger.info("Spark F1 score: %.4f", spark_f1)
 
         # collect for sklearn metrics
         y_true = [row.label for row in predictions.select("label").collect()]
         y_pred = [row.prediction for row in predictions.select("prediction").collect()]
 
-        acc = accuracy_score(y_true, y_pred)
-        f1 = f1_score(y_true, y_pred, average="weighted")
-        prec = precision_score(y_true, y_pred, average="weighted")
-        rec = recall_score(y_true, y_pred, average="weighted")
-        cm = confusion_matrix(y_true, y_pred)
-        report = classification_report(y_true, y_pred)
-
-        logger.info(f"Accuracy: {acc:.4f}, F1: {f1:.4f}")
-
-        return TrainingResult(
-            accuracy=acc,
-            f1_score=f1,
-            precision=prec,
-            recall=rec,
-            confusion_matrix=cm.tolist(),
-            classification_report=report,
-        )
+        result = compute_metrics(y_true, y_pred)
+        logger.info("Accuracy: %.4f, F1: %.4f", result.accuracy, result.f1_score)
+        return result
 
     def save(self, path: Path) -> None:
         """Save trained model to disk."""
         if self.model is None:
-            raise RuntimeError("Model not trained. Call train() first.")
+            raise ModelNotTrainedError("Model not trained. Call train() first.")
 
         self.model.write().overwrite().save(str(path))
-        logger.info(f"Model saved to {path}")
+        logger.info("Model saved to %s", path)
 
     def load(self, path: Path) -> None:
         """Load trained model from disk."""
         if not path.exists():
-            raise FileNotFoundError(f"Model directory not found: {path}")
+            raise MissingFileError(f"Model directory not found: {path}")
 
         self.model = PipelineModel.load(str(path))
-        logger.info(f"Model loaded from {path}")
+        logger.info("Model loaded from %s", path)

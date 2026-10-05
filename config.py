@@ -72,6 +72,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         env_nested_delimiter="__",
+        # .env also holds the GCP_/DATAPROC_/MODEL_ keys the nested groups read.
         extra="ignore",
     )
 
@@ -99,10 +100,12 @@ class Settings(BaseSettings):
 
     @property
     def train_path(self) -> Path:
+        """Training data file inside data_dir."""
         return self.data_dir / self.train_file
 
     @property
     def test_path(self) -> Path:
+        """Test data file inside data_dir."""
         return self.data_dir / self.test_file
 
 

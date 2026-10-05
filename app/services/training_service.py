@@ -1,11 +1,10 @@
-"""Training orchestration service."""
-
 import logging
 from pathlib import Path
 
 import pandas as pd
 
 from config import Settings
+from errors import UnknownBackendError
 from libs.data.loader import LocalDataLoader
 from libs.data.preprocessing import balance_classes, split_features_labels
 from libs.ml.sklearn_trainer import SklearnMLPTrainer
@@ -26,16 +25,12 @@ class TrainingService:
         backend: str = "sklearn",
         output_path: Path | None = None,
     ) -> TrainingResult:
-        """Run the complete training pipeline.
+        """Load, optionally balance, train on backend "sklearn" or "spark", evaluate.
 
-        Args:
-            backend: Training backend ('sklearn' or 'spark')
-            output_path: Path to save the trained model
-
-        Returns:
-            TrainingResult with metrics and model path
+        When output_path is given the model is saved there and the result records it.
+        Raises ValueError for an unknown backend.
         """
-        logger.info(f"Starting training pipeline with backend: {backend}")
+        logger.info("Starting training pipeline with backend: %s", backend)
 
         # load data
         train_data = self.loader.load_train()
@@ -45,8 +40,9 @@ class TrainingService:
         test_stats = self.loader.get_stats(test_data)
 
         logger.info(
-            f"Loaded {train_stats.num_samples} training samples, "
-            f"{test_stats.num_samples} test samples"
+            "Loaded %s training samples, %s test samples",
+            train_stats.num_samples,
+            test_stats.num_samples,
         )
 
         # preprocess
@@ -68,7 +64,7 @@ class TrainingService:
         elif backend == "spark":
             result = self._train_spark(train_data, test_data, output_path)
         else:
-            raise ValueError(f"Unknown backend: {backend}")
+            raise UnknownBackendError(f"Unknown backend: {backend}")
 
         return result
 
@@ -88,15 +84,7 @@ class TrainingService:
 
         if output_path:
             trainer.save(output_path)
-            result = TrainingResult(
-                accuracy=result.accuracy,
-                f1_score=result.f1_score,
-                precision=result.precision,
-                recall=result.recall,
-                confusion_matrix=result.confusion_matrix,
-                classification_report=result.classification_report,
-                model_path=output_path,
-            )
+            result = result.model_copy(update={"model_path": output_path})
 
         return result
 
@@ -107,9 +95,10 @@ class TrainingService:
         output_path: Path | None,
     ) -> TrainingResult:
         """Train using PySpark."""
-        from pyspark.sql import SparkSession
+        # pyspark starts a JVM on import, so it loads only for --backend spark.
+        from pyspark.sql import SparkSession  # noqa: PLC0415
 
-        from libs.ml.spark_trainer import SparkMLPTrainer
+        from libs.ml.spark_trainer import SparkMLPTrainer  # noqa: PLC0415
 
         spark = (
             SparkSession.builder.appName("EKGClassifier")
@@ -129,15 +118,7 @@ class TrainingService:
 
         if output_path:
             trainer.save(output_path)
-            result = TrainingResult(
-                accuracy=result.accuracy,
-                f1_score=result.f1_score,
-                precision=result.precision,
-                recall=result.recall,
-                confusion_matrix=result.confusion_matrix,
-                classification_report=result.classification_report,
-                model_path=output_path,
-            )
+            result = result.model_copy(update={"model_path": output_path})
 
         spark.stop()
         return result

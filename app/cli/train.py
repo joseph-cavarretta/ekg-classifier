@@ -1,5 +1,3 @@
-"""Training CLI for EKG classifier."""
-
 import argparse
 import logging
 import sys
@@ -17,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse the backend, class-balancing and output options."""
     parser = argparse.ArgumentParser(
         description="Train EKG classification model",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -61,15 +60,22 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Train, print the evaluation report, and return the process exit code."""
     args = parse_args()
 
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    logger.info(f"Starting training with backend: {args.backend}")
+    logger.info("Starting training with backend: %s", args.backend)
 
-    settings = get_settings()
-    settings.model.balance_classes = args.balance_classes
+    base = get_settings()
+    settings = base.model_copy(
+        update={
+            "model": base.model.model_copy(
+                update={"balance_classes": args.balance_classes}
+            )
+        }
+    )
 
     if args.output:
         output_path = args.output
@@ -89,15 +95,15 @@ def main() -> int:
         print(format_classification_report(result))
 
         if result.model_path:
-            logger.info(f"Model saved to: {result.model_path}")
+            logger.info("Model saved to: %s", result.model_path)
 
         return 0
 
     except FileNotFoundError as e:
-        logger.error(f"Data file not found: {e}")
+        logger.error("Data file not found: %s", e)
         return 1
     except Exception as e:
-        logger.exception(f"Training failed: {e}")
+        logger.exception("Training failed: %s", e)
         return 1
 
 

@@ -1,7 +1,7 @@
 import logging
-from typing import Any
 
 import numpy as np
+from numpy.typing import ArrayLike
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -16,8 +16,8 @@ from models import HeartbeatClass, TrainingResult
 logger = logging.getLogger(__name__)
 
 
-def compute_metrics(y_true: Any, y_pred: Any) -> TrainingResult:
-    """Compute classification metrics from predictions."""
+def compute_metrics(y_true: ArrayLike, y_pred: ArrayLike) -> TrainingResult:
+    """Compute classification metrics; averaged ones are weighted by class support."""
     acc = accuracy_score(y_true, y_pred)
     f1 = f1_score(y_true, y_pred, average="weighted")
     prec = precision_score(y_true, y_pred, average="weighted")

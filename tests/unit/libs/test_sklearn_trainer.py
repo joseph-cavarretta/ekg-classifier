@@ -1,5 +1,3 @@
-"""Tests for sklearn trainer."""
-
 from pathlib import Path
 
 import numpy as np
@@ -12,7 +10,9 @@ from libs.ml.sklearn_trainer import SklearnMLPTrainer
 
 
 class TestSklearnMLPTrainer:
-    def test_train(self, sample_train_data: pd.DataFrame, model_config: ModelConfig):
+    def test_train(
+        self, sample_train_data: pd.DataFrame, model_config: ModelConfig
+    ) -> None:
         x_train, y_train = split_features_labels(sample_train_data)
         trainer = SklearnMLPTrainer(model_config)
 
@@ -20,7 +20,9 @@ class TestSklearnMLPTrainer:
 
         assert trainer.model is not None
 
-    def test_predict(self, sample_train_data: pd.DataFrame, model_config: ModelConfig):
+    def test_predict(
+        self, sample_train_data: pd.DataFrame, model_config: ModelConfig
+    ) -> None:
         x_train, y_train = split_features_labels(sample_train_data)
         trainer = SklearnMLPTrainer(model_config)
         trainer.train(x_train, y_train)
@@ -30,7 +32,7 @@ class TestSklearnMLPTrainer:
         assert len(predictions) == 10
         assert all(p in [0, 1, 2, 3, 4] for p in predictions)
 
-    def test_predict_without_training(self, model_config: ModelConfig):
+    def test_predict_without_training(self, model_config: ModelConfig) -> None:
         trainer = SklearnMLPTrainer(model_config)
 
         with pytest.raises(RuntimeError, match="not trained"):
@@ -38,7 +40,7 @@ class TestSklearnMLPTrainer:
 
     def test_predict_proba(
         self, sample_train_data: pd.DataFrame, model_config: ModelConfig
-    ):
+    ) -> None:
         x_train, y_train = split_features_labels(sample_train_data)
         trainer = SklearnMLPTrainer(model_config)
         trainer.train(x_train, y_train)
@@ -54,7 +56,7 @@ class TestSklearnMLPTrainer:
         sample_train_data: pd.DataFrame,
         sample_test_data: pd.DataFrame,
         model_config: ModelConfig,
-    ):
+    ) -> None:
         x_train, y_train = split_features_labels(sample_train_data)
         x_test, y_test = split_features_labels(sample_test_data)
 
@@ -74,7 +76,7 @@ class TestSklearnMLPTrainer:
         sample_train_data: pd.DataFrame,
         model_config: ModelConfig,
         tmp_path: Path,
-    ):
+    ) -> None:
         x_train, y_train = split_features_labels(sample_train_data)
         trainer = SklearnMLPTrainer(model_config)
         trainer.train(x_train, y_train)
@@ -93,19 +95,23 @@ class TestSklearnMLPTrainer:
 
         assert np.array_equal(original_predictions, loaded_predictions)
 
-    def test_save_without_training(self, model_config: ModelConfig, tmp_path: Path):
+    def test_save_without_training(
+        self, model_config: ModelConfig, tmp_path: Path
+    ) -> None:
         trainer = SklearnMLPTrainer(model_config)
 
         with pytest.raises(RuntimeError, match="not trained"):
             trainer.save(tmp_path / "model.pkl")
 
-    def test_load_nonexistent_file(self, model_config: ModelConfig, tmp_path: Path):
+    def test_load_nonexistent_file(
+        self, model_config: ModelConfig, tmp_path: Path
+    ) -> None:
         trainer = SklearnMLPTrainer(model_config)
 
         with pytest.raises(FileNotFoundError):
             trainer.load(tmp_path / "nonexistent.pkl")
 
-    def test_custom_config(self, sample_train_data: pd.DataFrame):
+    def test_custom_config(self, sample_train_data: pd.DataFrame) -> None:
         config = ModelConfig(
             hidden_layers=(50,),
             max_iter=10,
@@ -115,6 +121,7 @@ class TestSklearnMLPTrainer:
         trainer = SklearnMLPTrainer(config)
         trainer.train(x_train, y_train)
 
+        assert trainer.model is not None
         assert trainer.model.hidden_layer_sizes == (50,)
         assert trainer.model.max_iter == 10
         assert trainer.model.random_state == 123

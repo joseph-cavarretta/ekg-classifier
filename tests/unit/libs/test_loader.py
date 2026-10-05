@@ -1,5 +1,3 @@
-"""Tests for data loader."""
-
 from pathlib import Path
 
 import numpy as np
@@ -46,7 +44,7 @@ def loader_settings(tmp_path: Path, temp_data_files: tuple[Path, Path]) -> Setti
 
 
 class TestLocalDataLoader:
-    def test_load_train(self, loader_settings: Settings):
+    def test_load_train(self, loader_settings: Settings) -> None:
         loader = LocalDataLoader(loader_settings)
         data = loader.load_train()
 
@@ -54,14 +52,14 @@ class TestLocalDataLoader:
         assert len(data) == 100
         assert len(data.columns) == 188
 
-    def test_load_test(self, loader_settings: Settings):
+    def test_load_test(self, loader_settings: Settings) -> None:
         loader = LocalDataLoader(loader_settings)
         data = loader.load_test()
 
         assert isinstance(data, pd.DataFrame)
         assert len(data) == 50
 
-    def test_dtype_optimization(self, loader_settings: Settings):
+    def test_dtype_optimization(self, loader_settings: Settings) -> None:
         loader = LocalDataLoader(loader_settings)
         data = loader.load_train()
 
@@ -69,7 +67,7 @@ class TestLocalDataLoader:
         for col in data.columns:
             assert data[col].dtype == np.float32
 
-    def test_get_stats(self, loader_settings: Settings):
+    def test_get_stats(self, loader_settings: Settings) -> None:
         loader = LocalDataLoader(loader_settings)
         data = loader.load_train()
         stats = loader.get_stats(data)
@@ -79,7 +77,7 @@ class TestLocalDataLoader:
         assert stats.total_classes == 5
         assert sum(stats.class_distribution.values()) == 100
 
-    def test_file_not_found(self, tmp_path: Path):
+    def test_file_not_found(self, tmp_path: Path) -> None:
         settings = Settings(
             data_dir=tmp_path,
             train_file="nonexistent.csv",
@@ -90,7 +88,7 @@ class TestLocalDataLoader:
         with pytest.raises(FileNotFoundError):
             loader.load_train()
 
-    def test_null_values_rejected(self, tmp_path: Path):
+    def test_null_values_rejected(self, tmp_path: Path) -> None:
         # create data with null values
         data = pd.DataFrame(
             {
