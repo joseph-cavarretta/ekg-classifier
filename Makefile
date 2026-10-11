@@ -11,13 +11,15 @@ test:
 
 lint:
 	uv run ruff check .
+	uv run ruff format --check .
+	uv run python ../agent-dev-harness/python-styleguide/docstring_length.py .
 
 format:
 	uv run ruff format .
 	uv run ruff check --fix .
 
 type-check:
-	uv run mypy libs app
+	uv run mypy .
 
 docker-up:
 	docker compose up -d

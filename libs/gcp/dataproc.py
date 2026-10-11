@@ -1,8 +1,9 @@
 import logging
-import time
 from typing import Any
 
+from google.api_core.exceptions import NotFound
 from google.cloud import dataproc_v1
+from tenacity import retry, retry_if_result, wait_fixed
 
 from config import DataprocConfig, GCPConfig
 
@@ -11,6 +12,7 @@ logger = logging.getLogger(__name__)
 SPARK_BIGQUERY_JAR = (
     "gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.35.0.jar"
 )
+TERMINAL_JOB_STATES = ("DONE", "ERROR", "CANCELLED")
 
 
 class DataprocClient:
@@ -64,25 +66,25 @@ class DataprocClient:
             },
         }
 
-        logger.info(f"Creating cluster: {self.dataproc_config.cluster_name}")
+        logger.info("Creating cluster: %s", self.dataproc_config.cluster_name)
         operation = self._cluster_client.create_cluster(
             project_id=self.gcp_config.project_id,
             region=self.gcp_config.region,
             cluster=cluster_config,
         )
         operation.result()
-        logger.info(f"Cluster created: {self.dataproc_config.cluster_name}")
+        logger.info("Cluster created: %s", self.dataproc_config.cluster_name)
 
     def delete_cluster(self) -> None:
         """Delete the Dataproc cluster."""
-        logger.info(f"Deleting cluster: {self.dataproc_config.cluster_name}")
+        logger.info("Deleting cluster: %s", self.dataproc_config.cluster_name)
         operation = self._cluster_client.delete_cluster(
             project_id=self.gcp_config.project_id,
             region=self.gcp_config.region,
             cluster_name=self.dataproc_config.cluster_name,
         )
         operation.result()
-        logger.info(f"Cluster deleted: {self.dataproc_config.cluster_name}")
+        logger.info("Cluster deleted: %s", self.dataproc_config.cluster_name)
 
     def cluster_exists(self) -> bool:
         """Check if the cluster exists."""
@@ -92,9 +94,9 @@ class DataprocClient:
                 region=self.gcp_config.region,
                 cluster_name=self.dataproc_config.cluster_name,
             )
-            return True
-        except Exception:
+        except NotFound:
             return False
+        return True
 
     def submit_pyspark_job(
         self,
@@ -105,22 +107,16 @@ class DataprocClient:
         jar_file_uris: list[str] | None = None,
         wait: bool = True,
     ) -> str:
-        """Submit a PySpark job to the cluster.
+        """Submit the gs:// Python file as a PySpark job and return its job id.
 
-        Args:
-            main_python_file_uri: GCS URI of the main Python file
-            args: Arguments to pass to the Python script
-            python_file_uris: Additional Python files to include
-            jar_file_uris: JAR files to include (spark-bigquery added by default)
-            wait: Wait for job completion
-
-        Returns:
-            Job ID
+        The spark-bigquery connector jar is always included. With wait, this blocks
+        until the job finishes.
         """
         jars = [SPARK_BIGQUERY_JAR]
         if jar_file_uris:
             jars.extend(jar_file_uris)
 
+        # The client accepts a plain dict spec in place of a Job message.
         job: dict[str, Any] = {
             "placement": {"cluster_name": self.dataproc_config.cluster_name},
             "pyspark_job": {
@@ -134,7 +130,7 @@ class DataprocClient:
         if python_file_uris:
             job["pyspark_job"]["python_file_uris"] = python_file_uris
 
-        logger.info(f"Submitting PySpark job: {main_python_file_uri}")
+        logger.info("Submitting PySpark job: %s", main_python_file_uri)
         operation = self._job_client.submit_job_as_operation(
             project_id=self.gcp_config.project_id,
             region=self.gcp_config.region,
@@ -143,13 +139,13 @@ class DataprocClient:
 
         if wait:
             result = operation.result()
-            job_id = result.reference.job_id
-            logger.info(f"Job completed: {job_id}")
-            return job_id
+            completed_id: str = result.reference.job_id
+            logger.info("Job completed: %s", completed_id)
+            return completed_id
 
         # return the job id from the operation metadata
-        job_id = operation.metadata.job_id
-        logger.info(f"Job submitted: {job_id}")
+        job_id: str = operation.metadata.job_id
+        logger.info("Job submitted: %s", job_id)
         return job_id
 
     def get_job_status(self, job_id: str) -> str:
@@ -159,23 +155,19 @@ class DataprocClient:
             region=self.gcp_config.region,
             job_id=job_id,
         )
-        return dataproc_v1.JobStatus.State(job.status.state).name
+        state: str = dataproc_v1.JobStatus.State(job.status.state).name
+        return state
+
+    def _logged_status(self, job_id: str) -> str:
+        """The job's status, logged."""
+        status = self.get_job_status(job_id)
+        logger.info("Job %s status: %s", job_id, status)
+        return status
 
     def wait_for_job(self, job_id: str, poll_interval: int = 10) -> str:
-        """Wait for a job to complete.
-
-        Args:
-            job_id: The job ID to wait for
-            poll_interval: Seconds between status checks
-
-        Returns:
-            Final job state
-        """
-        while True:
-            status = self.get_job_status(job_id)
-            logger.info(f"Job {job_id} status: {status}")
-
-            if status in ("DONE", "ERROR", "CANCELLED"):
-                return status
-
-            time.sleep(poll_interval)
+        """Poll every poll_interval seconds until the job finishes; return its state."""
+        poll = retry(
+            retry=retry_if_result(lambda status: status not in TERMINAL_JOB_STATES),
+            wait=wait_fixed(poll_interval),
+        )(self._logged_status)
+        return poll(job_id)

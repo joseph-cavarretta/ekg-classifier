@@ -1,9 +1,11 @@
 import logging
 from pathlib import Path
+from typing import Literal, cast
 
 import pandas as pd
 
 from config import Settings
+from errors import InvalidDatasetError
 from models import DatasetStats
 
 logger = logging.getLogger(__name__)
@@ -17,24 +19,24 @@ class LocalDataLoader:
 
     def load_train(self) -> pd.DataFrame:
         """Load training dataset with dtype optimization."""
-        logger.info(f"Loading training data from {self.settings.train_path}")
+        logger.info("Loading training data from %s", self.settings.train_path)
         return self._load_and_optimize(self.settings.train_path)
 
     def load_test(self) -> pd.DataFrame:
         """Load test dataset with dtype optimization."""
-        logger.info(f"Loading test data from {self.settings.test_path}")
+        logger.info("Loading test data from %s", self.settings.test_path)
         return self._load_and_optimize(self.settings.test_path)
 
     def _load_and_optimize(self, path: Path) -> pd.DataFrame:
         """Load CSV and convert float64 to float32 to reduce memory usage."""
-        compression = "gzip" if path.suffix == ".gz" else None
+        compression: Literal["gzip"] | None = "gzip" if path.suffix == ".gz" else None
         df = pd.read_csv(path, header=None, compression=compression)
 
         for col in df.columns:
             if df[col].dtype == "float64":
                 df[col] = pd.to_numeric(df[col], downcast="float")
 
-        logger.info(f"Loaded {len(df)} samples with {len(df.columns)} columns")
+        logger.info("Loaded %s samples with %s columns", len(df), len(df.columns))
         self._validate_no_nulls(df, path.name)
         return df
 
@@ -42,13 +44,18 @@ class LocalDataLoader:
         """Ensure no null values in dataset."""
         null_cols = df.columns[df.isnull().any()].tolist()
         if null_cols:
-            raise ValueError(f"Null values found in {name} columns: {null_cols}")
+            raise InvalidDatasetError(
+                f"Null values found in {name} columns: {null_cols}"
+            )
 
     def get_stats(self, data: pd.DataFrame) -> DatasetStats:
         """Compute statistics for a dataset."""
         label_col = data.columns[-1]
         class_counts = data[label_col].value_counts().to_dict()
-        class_distribution = {int(k): int(v) for k, v in class_counts.items()}
+        # Labels are read as floats (0.0 .. 4.0); counts are ints.
+        class_distribution = {
+            int(cast("float", k)): int(v) for k, v in class_counts.items()
+        }
 
         return DatasetStats(
             num_samples=len(data),

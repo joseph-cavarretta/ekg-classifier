@@ -1,14 +1,11 @@
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
 
 from google.api_core.exceptions import Conflict, NotFound
 from google.cloud import storage  # type: ignore[attr-defined]
 
 from config import GCPConfig
-
-if TYPE_CHECKING:
-    pass
+from errors import MissingFileError
 
 logger = logging.getLogger(__name__)
 
@@ -18,10 +15,11 @@ class GCSClient:
 
     def __init__(self, config: GCPConfig) -> None:
         self.config = config
-        self._client: Any = storage.Client(project=config.project_id)
+        self._client = storage.Client(project=config.project_id)
 
     @property
-    def bucket(self) -> Any:
+    def bucket(self) -> storage.Bucket:
+        """The configured bucket (no API call until it is used)."""
         return self._client.bucket(self.config.bucket_name)
 
     def create_bucket_if_not_exists(self, location: str = "US") -> None:
@@ -31,39 +29,26 @@ class GCSClient:
                 self.config.bucket_name,
                 location=location,
             )
-            logger.info(f"Created bucket: {self.config.bucket_name}")
+            logger.info("Created bucket: %s", self.config.bucket_name)
         except Conflict:
-            logger.info(f"Bucket already exists: {self.config.bucket_name}")
+            logger.info("Bucket already exists: %s", self.config.bucket_name)
 
     def upload(self, local_path: Path, remote_path: str) -> str:
-        """Upload a file to GCS.
-
-        Args:
-            local_path: Local file path to upload
-            remote_path: Destination path in the bucket (without gs:// prefix)
-
-        Returns:
-            The full GCS URI of the uploaded file
-        """
+        """Upload local_path to remote_path (no gs:// prefix); return its gs:// URI."""
         if not local_path.exists():
-            raise FileNotFoundError(f"Local file not found: {local_path}")
+            raise MissingFileError(f"Local file not found: {local_path}")
 
         blob = self.bucket.blob(remote_path)
         blob.upload_from_filename(str(local_path))
 
         uri = f"gs://{self.config.bucket_name}/{remote_path}"
-        logger.info(f"Uploaded {local_path} to {uri}")
+        logger.info("Uploaded %s to %s", local_path, uri)
         return uri
 
     def download(self, remote_path: str, local_path: Path) -> Path:
-        """Download a file from GCS.
+        """Download remote_path (no gs:// prefix) to local_path and return local_path.
 
-        Args:
-            remote_path: Source path in the bucket (without gs:// prefix)
-            local_path: Local destination path
-
-        Returns:
-            The local path of the downloaded file
+        Raises NotFound when the blob does not exist.
         """
         blob = self.bucket.blob(remote_path)
 
@@ -76,14 +61,17 @@ class GCSClient:
         blob.download_to_filename(str(local_path))
 
         logger.info(
-            f"Downloaded gs://{self.config.bucket_name}/{remote_path} to {local_path}"
+            "Downloaded gs://%s/%s to %s",
+            self.config.bucket_name,
+            remote_path,
+            local_path,
         )
         return local_path
 
     def exists(self, remote_path: str) -> bool:
         """Check if a remote path exists in the bucket."""
-        blob = self.bucket.blob(remote_path)
-        return blob.exists()
+        exists: bool = self.bucket.blob(remote_path).exists()
+        return exists
 
     def list_blobs(self, prefix: str = "") -> list[str]:
         """List all blob names with the given prefix."""

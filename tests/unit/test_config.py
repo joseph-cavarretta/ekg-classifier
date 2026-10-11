@@ -1,17 +1,15 @@
-"""Tests for configuration module."""
-
 from pathlib import Path
 
 from config import GCPConfig, ModelConfig, Settings
 
 
 class TestGCPConfig:
-    def test_default_values(self):
+    def test_default_values(self) -> None:
         config = GCPConfig(project_id="test", bucket_name="bucket")
         assert config.region == "us-central1"
         assert config.dataset_id == "electrocardiograms"
 
-    def test_custom_values(self):
+    def test_custom_values(self) -> None:
         config = GCPConfig(
             project_id="my-project",
             bucket_name="my-bucket",
@@ -25,40 +23,40 @@ class TestGCPConfig:
 
 
 class TestModelConfig:
-    def test_default_values(self):
+    def test_default_values(self) -> None:
         config = ModelConfig()
         assert config.hidden_layers == (75, 75, 75)
         assert config.max_iter == 300
         assert config.random_seed == 42
         assert config.balance_classes is True
 
-    def test_custom_hidden_layers(self):
+    def test_custom_hidden_layers(self) -> None:
         config = ModelConfig(hidden_layers=(100, 100))
         assert config.hidden_layers == (100, 100)
 
 
 class TestSettings:
-    def test_default_paths(self):
+    def test_default_paths(self) -> None:
         settings = Settings(gcp=GCPConfig(project_id="test", bucket_name="bucket"))
         assert settings.data_dir == Path("data")
         assert settings.train_file == "mitbih_train.csv.gz"
         assert settings.test_file == "mitbih_test.csv.gz"
 
-    def test_train_path_property(self):
+    def test_train_path_property(self) -> None:
         settings = Settings(
             data_dir=Path("/custom/path"),
             gcp=GCPConfig(project_id="test", bucket_name="bucket"),
         )
         assert settings.train_path == Path("/custom/path/mitbih_train.csv.gz")
 
-    def test_test_path_property(self):
+    def test_test_path_property(self) -> None:
         settings = Settings(
             data_dir=Path("/custom/path"),
             gcp=GCPConfig(project_id="test", bucket_name="bucket"),
         )
         assert settings.test_path == Path("/custom/path/mitbih_test.csv.gz")
 
-    def test_nested_config_access(self):
+    def test_nested_config_access(self) -> None:
         settings = Settings(
             gcp=GCPConfig(project_id="test", bucket_name="bucket"),
             model=ModelConfig(max_iter=500),

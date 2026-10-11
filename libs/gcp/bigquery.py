@@ -1,7 +1,7 @@
 import logging
 
 import pandas as pd
-from google.api_core.exceptions import Conflict
+from google.api_core.exceptions import Conflict, NotFound
 from google.cloud import bigquery
 
 from config import GCPConfig
@@ -19,12 +19,7 @@ class BigQueryClient:
     def create_dataset(
         self, dataset_id: str | None = None, location: str = "US"
     ) -> None:
-        """Create a dataset if it doesn't exist.
-
-        Args:
-            dataset_id: Dataset ID (uses config default if not provided)
-            location: Dataset location
-        """
+        """Create the dataset (the configured one by default) unless it exists."""
         dataset_id = dataset_id or self.config.dataset_id
         full_dataset_id = f"{self.config.project_id}.{dataset_id}"
 
@@ -33,9 +28,9 @@ class BigQueryClient:
 
         try:
             self._client.create_dataset(dataset, timeout=30)
-            logger.info(f"Created dataset: {full_dataset_id}")
+            logger.info("Created dataset: %s", full_dataset_id)
         except Conflict:
-            logger.info(f"Dataset already exists: {full_dataset_id}")
+            logger.info("Dataset already exists: %s", full_dataset_id)
 
     def load_from_gcs(
         self,
@@ -46,17 +41,10 @@ class BigQueryClient:
         skip_leading_rows: int = 1,
         write_disposition: str = "WRITE_TRUNCATE",
     ) -> int:
-        """Load data from GCS into BigQuery.
+        """Load a CSV at gcs_uri into table_id (project.dataset.table).
 
-        Args:
-            gcs_uri: Full GCS URI (gs://bucket/path)
-            table_id: Full table ID (project.dataset.table)
-            autodetect: Auto-detect schema
-            skip_leading_rows: Number of header rows to skip
-            write_disposition: How to handle existing data
-
-        Returns:
-            Number of rows loaded
+        Creates the table if needed and, by default, replaces its contents. Returns the
+        table's row count after the load.
         """
         job_config = bigquery.LoadJobConfig(
             autodetect=autodetect,
@@ -66,7 +54,7 @@ class BigQueryClient:
             skip_leading_rows=skip_leading_rows,
         )
 
-        logger.info(f"Loading {gcs_uri} to {table_id}")
+        logger.info("Loading %s to %s", gcs_uri, table_id)
 
         load_job = self._client.load_table_from_uri(
             gcs_uri,
@@ -78,19 +66,12 @@ class BigQueryClient:
         table = self._client.get_table(table_id)
         row_count = table.num_rows or 0
 
-        logger.info(f"Loaded {row_count} rows to {table_id}")
+        logger.info("Loaded %s rows to %s", row_count, table_id)
         return row_count
 
     def query(self, sql: str) -> pd.DataFrame:
-        """Execute a query and return results as DataFrame.
-
-        Args:
-            sql: SQL query to execute
-
-        Returns:
-            Query results as pandas DataFrame
-        """
-        logger.debug(f"Executing query: {sql[:100]}...")
+        """Run a query and return its results as a DataFrame."""
+        logger.debug("Executing query: %s...", sql[:100])
         query_job = self._client.query(sql)
         return query_job.to_dataframe()
 
@@ -98,9 +79,9 @@ class BigQueryClient:
         """Check if a table exists."""
         try:
             self._client.get_table(table_id)
-            return True
-        except Exception:
+        except NotFound:
             return False
+        return True
 
     def get_table_row_count(self, table_id: str) -> int:
         """Get the row count of a table."""

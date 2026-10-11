@@ -1,7 +1,4 @@
-"""Shared test fixtures."""
-
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import numpy as np
 import pandas as pd
@@ -79,24 +76,3 @@ def settings(
         model=model_config,
         gcp=gcp_config,
     )
-
-
-@pytest.fixture
-def mock_gcs_client() -> MagicMock:
-    """Create a mock GCS client."""
-    client = MagicMock()
-    client.create_bucket_if_not_exists.return_value = None
-    client.upload.return_value = "gs://test-bucket/path/file.csv"
-    client.download.return_value = Path("/tmp/downloaded.csv")
-    client.exists.return_value = True
-    return client
-
-
-@pytest.fixture
-def mock_bigquery_client() -> MagicMock:
-    """Create a mock BigQuery client."""
-    client = MagicMock()
-    client.create_dataset.return_value = None
-    client.load_from_gcs.return_value = 1000
-    client.table_exists.return_value = True
-    return client

@@ -1,5 +1,3 @@
-"""GCP infrastructure setup CLI."""
-
 import argparse
 import logging
 import sys
@@ -16,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse the setup, upload, load-bigquery and validate subcommands."""
     parser = argparse.ArgumentParser(
         description="Set up GCP infrastructure for EKG classifier",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -57,6 +56,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Run the chosen GCP subcommand; return the process exit code."""
     args = parse_args()
 
     if args.verbose:
@@ -89,7 +89,7 @@ def main() -> int:
 
         elif args.command == "load-bigquery":
             train_rows, test_rows = service.load_to_bigquery()
-            logger.info(f"Loaded {train_rows} training rows, {test_rows} test rows")
+            logger.info("Loaded %s training rows, %s test rows", train_rows, test_rows)
 
         elif args.command == "validate":
             if service.validate_config():
@@ -101,7 +101,7 @@ def main() -> int:
         return 0
 
     except Exception as e:
-        logger.exception(f"Command failed: {e}")
+        logger.exception("Command failed: %s", e)
         return 1
 
 

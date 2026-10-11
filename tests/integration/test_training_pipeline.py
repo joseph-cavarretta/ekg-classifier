@@ -1,5 +1,3 @@
-"""Integration tests for training pipeline."""
-
 from pathlib import Path
 
 import numpy as np
@@ -74,7 +72,7 @@ def integration_settings(
 class TestTrainingPipeline:
     def test_sklearn_training_unbalanced(
         self, integration_settings: Settings, tmp_path: Path
-    ):
+    ) -> None:
         """Test full sklearn training pipeline without class balancing."""
         integration_settings.model.balance_classes = False
 
@@ -91,7 +89,7 @@ class TestTrainingPipeline:
 
     def test_sklearn_training_balanced(
         self, integration_settings: Settings, tmp_path: Path
-    ):
+    ) -> None:
         """Test full sklearn training pipeline with class balancing."""
         service = TrainingService(integration_settings)
         result = service.train(
@@ -101,9 +99,10 @@ class TestTrainingPipeline:
 
         assert result.accuracy > 0
         assert result.f1_score > 0
+        assert result.model_path is not None
         assert result.model_path.exists()
 
-    def test_classification_report_format(self, integration_settings: Settings):
+    def test_classification_report_format(self, integration_settings: Settings) -> None:
         """Test that classification report is properly formatted."""
         integration_settings.model.balance_classes = False
 
@@ -114,7 +113,7 @@ class TestTrainingPipeline:
         assert "recall" in result.classification_report
         assert "f1-score" in result.classification_report
 
-    def test_confusion_matrix_shape(self, integration_settings: Settings):
+    def test_confusion_matrix_shape(self, integration_settings: Settings) -> None:
         """Test that confusion matrix has correct shape."""
         integration_settings.model.balance_classes = False
 
@@ -125,7 +124,7 @@ class TestTrainingPipeline:
         assert len(result.confusion_matrix) == 5
         assert all(len(row) == 5 for row in result.confusion_matrix)
 
-    def test_reproducibility(self, integration_settings: Settings):
+    def test_reproducibility(self, integration_settings: Settings) -> None:
         """Test that training is reproducible with same seed."""
         integration_settings.model.balance_classes = False
 
